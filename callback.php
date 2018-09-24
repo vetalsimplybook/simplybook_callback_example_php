@@ -33,6 +33,11 @@ class SimplybookCallback{
 		$this->_secretKey = $secretKey;
 	}
 
+	/**
+	 * Converting the received data to PHP Array format
+	 *
+	 * @return array|null
+	 */
 	public function getNotificationData(){
 		//For example: {"booking_id":"2262","booking_hash":"514ccafaa45aa779ff50e4642c37ba5d","company":"eventdatetime","notification_type":"change"}
 		$phpInput = file_get_contents('php://input');
@@ -55,6 +60,11 @@ class SimplybookCallback{
 	}
 
 
+	/**
+	 * API initialization, token receiving
+	 *
+	 * @return Client
+	 */
 	public function initApi(){
 		/**
 		 * Using Simplybook API methods require an authentication.
@@ -77,6 +87,12 @@ class SimplybookCallback{
 		return $this->api();
 	}
 
+	/**
+	 * Creating an Authorization Header to call API functions
+	 *
+	 * @return array
+	 */
+
 	protected function getHeaderParams(){
 		return array(
 			"X-Company-Login: {$this->_companyLogin}",
@@ -85,6 +101,8 @@ class SimplybookCallback{
 	}
 
 	/**
+	 * Get API instance
+	 *
 	 * @return Client
 	 */
 	public function api(){
@@ -94,12 +112,23 @@ class SimplybookCallback{
 		return $this->_api;
 	}
 
+	/**
+	 * Getting detailed booking information using Company public API
+	 *
+	 * @param $bookingId
+	 * @param $bookingHash
+	 *
+	 * @return mixed
+	 */
 	public function getBookingDetails($bookingId, $bookingHash){
 		//For this function signature is required. (md5($bookingId . $bookingHash . $secretKey))
 		$sign = md5($bookingId . $bookingHash. $this->_secretKey);
 		return $this->api()->execute("getBookingDetails", array($bookingId, $sign), array(), null, $this->getHeaderParams());
 	}
 
+	/**
+	 * SQLite database initialization and creating a table for bookings information
+	 */
 	public function initDatabase(){
 		//Init database
 		$this->_db = new SQLite3($this->_dbFile);
@@ -123,6 +152,8 @@ class SimplybookCallback{
 	}
 
 	/**
+	 * Get database instance
+	 *
 	 * @return SQLite3
 	 */
 	public function db(){
@@ -132,6 +163,14 @@ class SimplybookCallback{
 		return $this->_db;
 	}
 
+	/**
+	 * Inserting booking information into database table
+	 *
+	 * @param $bookingInfo
+	 *
+	 * @return SQLite3Result
+	 * @throws Exception
+	 */
 	public function saveBookingInfo($bookingInfo){
 		//insert booking data
 		$insertSql = "
@@ -154,13 +193,13 @@ class SimplybookCallback{
 		if (!$insert) {
 			throw new Exception('sql error');
 		}
-
 		return $insert->execute();
 	}
 
 
 	/**
-	 * Log var to local file
+	 * Log variable to local file
+	 *
 	 * @param $var
 	 * @param null $logfile
 	 */
@@ -170,7 +209,6 @@ class SimplybookCallback{
 		if(!$logfile){
 			$logfile = 'log';
 		}
-
 		//dump var to string
 		ob_start();
 		var_dump( $var );
@@ -186,24 +224,28 @@ class SimplybookCallback{
 		$fh = fopen($this->_dir . $logfile . '.txt', 'a');
 		fwrite($fh, $logContent);
 		fclose($fh);
-
 	}
 
 }
 
+//init
 $callback = new SimplybookCallback($companyLogin, $publicKey, $secretKey);
+//receive callback data
 $notificationData = $callback->getNotificationData();
+//log data to local log file  (log.txt)
 $callback->logData($notificationData);
 
 try {
 	if ( $notificationData ) {
+		//get information about current booking
 		$bookingInfo = $callback->getBookingDetails($notificationData['booking_id'], $notificationData['booking_hash']);
+		//log booking information to local log file  (log.txt)
 		$callback->logData($bookingInfo);
+		//save booking information to database
 		$callback->saveBookingInfo(array_merge($bookingInfo, $notificationData));
+
 		echo 'OK';
 	}
 } catch (Exception $e){
 	echo "Error : " . $e->getMessage();
-} catch (\Junior\Clientside\Exception $e){
-	echo "API Error : " . $e->getMessage();
 }
