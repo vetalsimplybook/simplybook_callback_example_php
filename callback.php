@@ -7,9 +7,8 @@ $companyLogin = 'company_login';
 $publicKey = 'public_key';
 $secretKey = 'secret_key';
 
-
-use Junior\Client;
-include_once dirname(__FILE__) . '/' . 'json-rpc/src/autoload.php';
+use JsonRPC\Client;
+include_once dirname(__FILE__) . '/' . 'vendor/autoload.php';
 
 
 class SimplybookCallback{
@@ -23,6 +22,7 @@ class SimplybookCallback{
 	private $_dbFile;
 	private $_api;
 	private $_db;
+	private $_token;
 
 	public function __construct($companyLogin, $publicKey, $secretKey) {
 		$this->_dir = dirname(__FILE__) . '/';
@@ -63,8 +63,9 @@ class SimplybookCallback{
 		 * service passing your personal API-key. You can copy your API-key at admin interface: go to the 'Custom Features'
 		 * link and select API custom feature 'Settings'.
 		 */
+		/** @var \JsonRPC\Client $loginClient */
 		$loginClient = new Client( $this->_apiUrl . '/login' );
-		$token = $loginClient->getToken( $this->_companyLogin, $this->_publicKey );
+		$this->_token = $loginClient->execute("getToken", array($this->_companyLogin, $this->_publicKey));
 
 		/**
 		 * You have just received auth token. Now you need to create JSON RPC Client,
@@ -72,12 +73,20 @@ class SimplybookCallback{
 		 * To get booking details use getBookingDetails() function.
 		 */
 		$this->_api = new Client( $this->_apiUrl . '/');
-		$this->_api->setHeaderParam('X-Company-Login', $this->_companyLogin);
-		$this->_api->setHeaderParam('X-Token', $token);
 
 		return $this->api();
 	}
 
+	protected function getHeaderParams(){
+		return array(
+			"X-Company-Login: {$this->_companyLogin}",
+			"X-Token: {$this->_token}"
+		);
+	}
+
+	/**
+	 * @return Client
+	 */
 	public function api(){
 		if(!$this->_api){
 			$this->initApi();
@@ -88,7 +97,7 @@ class SimplybookCallback{
 	public function getBookingDetails($bookingId, $bookingHash){
 		//For this function signature is required. (md5($bookingId . $bookingHash . $secretKey))
 		$sign = md5($bookingId . $bookingHash. $this->_secretKey);
-		return $this->api()->getBookingDetails($bookingId, $sign);
+		return $this->api()->execute("getBookingDetails", array($bookingId, $sign), array(), null, $this->getHeaderParams());
 	}
 
 	public function initDatabase(){
@@ -113,6 +122,9 @@ class SimplybookCallback{
 		$this->_db->query($tableCreateSql);
 	}
 
+	/**
+	 * @return SQLite3
+	 */
 	public function db(){
 		if(!$this->_db){
 			$this->initDatabase();
@@ -145,6 +157,7 @@ class SimplybookCallback{
 
 		return $insert->execute();
 	}
+
 
 	/**
 	 * Log var to local file
