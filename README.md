@@ -19,7 +19,7 @@ This example shows us that using Callback API we can get detailed info about boo
 1) get details via callback
 2) connect to Simplybook.me Company public service API using external [JsonRPC library](https://github.com/fguillot/JsonRPC)
 3) get booking details using [getBookingsDetails](https://simplybook.me/api/developer-api/tab/doc_api#getBookingDetailsdefault) method
-4) connect SQLite data to the local database
+4) connect to the local SQLite database  
 5) add booking details to the database
 
 
