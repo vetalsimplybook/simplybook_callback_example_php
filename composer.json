@@ -1,7 +1,8 @@
 {
   "require": {
     "php":">=5.3.4",
-    "fguillot/json-rpc":"dev-master"
+    "fguillot/json-rpc":"dev-master",
+    "ext-sqlite3": "*"
   },
   "repositories":[
     {

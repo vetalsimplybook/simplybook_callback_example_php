@@ -173,22 +173,22 @@ class SimplybookCallback{
 	 */
 	public function saveBookingInfo($bookingInfo){
 		//insert booking data
-		$insertSql = "
+        $insert = $this->db()->prepare("
 			INSERT INTO bookings (
 			  booking_id, booking_hash, notification_type, booking_code, client_id, client_name, start_date_time, end_date_time 
 			) VALUES ( 
-				'{$bookingInfo['booking_id']}' ,
-				'{$bookingInfo['booking_hash']}' ,
-				'{$bookingInfo['notification_type']}' ,
-				'{$bookingInfo['code']}' ,
-				'{$bookingInfo['client_id']}' ,
-				'{$bookingInfo['client_name']}' ,
-				'{$bookingInfo['start_date_time']}' ,
-				'{$bookingInfo['end_date_time']}'
+				:booking_id, :booking_hash,	:notification_type, :booking_code, :client_id, :client_name, :start_date_time, :end_date_time
 			);
-		";
+		");
 
-		$insert = $this->db()->prepare($insertSql);
+        $insert->bindValue(':booking_id', $bookingInfo['booking_id'], SQLITE3_TEXT);
+        $insert->bindValue(':booking_hash', $bookingInfo['booking_hash'], SQLITE3_TEXT);
+        $insert->bindValue(':notification_type', $bookingInfo['notification_type'], SQLITE3_TEXT);
+        $insert->bindValue(':booking_code', $bookingInfo['booking_code'], SQLITE3_TEXT);
+        $insert->bindValue(':client_id', $bookingInfo['client_id'], SQLITE3_INTEGER);
+        $insert->bindValue(':client_name', $bookingInfo['client_name'], SQLITE3_TEXT);
+        $insert->bindValue(':start_date_time', $bookingInfo['start_date_time'], SQLITE3_TEXT);
+        $insert->bindValue(':end_date_time', $bookingInfo['end_date_time'], SQLITE3_TEXT);
 
 		if (!$insert) {
 			throw new Exception('sql error');
